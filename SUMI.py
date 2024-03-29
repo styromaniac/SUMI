@@ -23,14 +23,16 @@ appimg_pth = os.path.join(app_fldr, 'Suyu.AppImage')
 bkup_pth = os.path.join(app_fldr, 'Suyu-backup.AppImage')
 temp_log_f = '/dev/shm/suyu-temp-revision.log'
 temp_pth = '/dev/shm/Suyu-temp.AppImage'
+cfg_dir = os.path.join(os.environ['HOME'], '.config')
 cache_dir = os.path.join(os.environ['HOME'], '.cache', 'SUMI')
-cache_exp = 50 * 24 * 60 * 60  # 50 days in seconds
-cached_pg_cnt = 10
-max_precached = 50
+cfg_f = os.path.join(cfg_dir, 'SUMI.conf')
+cache_exp = 50 * 24 * 60 * 60 # 50 days in seconds
+cached_pg_cnt = 0
+max_precached = 23
 mem_cache = {}
 mem_cache_lock = threading.Lock()
 pre_caching_done = False
-rest_api_url = "https://git.suyu.dev/api/v1"
+releases_url = "https://git.suyu.dev/api/v1/repos/suyu/suyu/releases?limit=100"
 
 def ensure_dir_exists(dir_pth):
     if not os.path.exists(dir_pth):
@@ -38,6 +40,7 @@ def ensure_dir_exists(dir_pth):
 
 ensure_dir_exists(app_fldr)
 ensure_dir_exists(cache_dir)
+ensure_dir_exists(cfg_dir)
 
 def on_tv_row_act(tv, pth, col):
     model = tv.get_model()
@@ -45,85 +48,28 @@ def on_tv_row_act(tv, pth, col):
     sel_row_val = model.get_value(it, 0)
     print("Selected:", sel_row_val)
 
-def pre_cache_releases():
-    global pre_caching_done
-    page = 1
+def pre_cache_gql_pages():
+    global pre_caching_done, graphql_url
+    page_num = 1
+    # Use multiprocessing.cpu_count() to dynamically set the number of workers
     with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as exec:
-        while True:
-            url = f"{rest_api_url}/repos/suyu/suyu/releases?page={page}"
-            cache_key = gen_cache_key(url)
-            if not get_from_cache(cache_key):
-                fut = exec.submit(fetch_and_cache_releases, url)
-                releases = fut.result()
-                if not releases:
-                    break
+        for _ in range(max_precached):
+            qry, vars = build_gql_qry(page_num)
+            cache_k = gen_cache_key(qry, vars)
+
+            if not get_from_cache(cache_k):
+                fut = exec.submit(fetch_and_cache_pg, page_num)
+                page_num = fut.result()
             else:
-                releases = get_from_cache(cache_key)
-                if not releases:
-                    break
-            page += 1
+                _, page_num = proc_cached_data(get_from_cache(cache_k))
+
     pre_caching_done = True
 
-def fetch_and_cache_releases(url):
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        return []
-    releases = resp.json()
-    cache_key = gen_cache_key(url)
-    save_to_cache(cache_key, releases)
-    return releases
-
-def fetch_releases(url, dlg):
-    cache_key = gen_cache_key(url)
-    cached_data = get_from_cache(cache_key)
-    if cached_data:
-        dlg.destroy()
-        return [release['tag_name'].replace('v', '') for release in cached_data]
-
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        dlg.destroy()
-        disp_msg("Failed to fetch releases. Please check your network connection.")
-        return []
-    releases = resp.json()
-    save_to_cache(cache_key, releases)
-    dlg.destroy()
-    return [release['tag_name'].replace('v', '') for release in releases]
-
-def get_dl_url(tag):
-    return f"{rest_api_url}/repos/suyu/suyu/releases/download/v{tag}/Suyu-Linux_x86_64.AppImage"
-
-def search_rev(search_rev):
-    global pre_caching_done
-    page = 1
-    while True:
-        if not pre_caching_done:
-            time.sleep(1)
-            continue
-        url = f"{rest_api_url}/repos/suyu/suyu/releases?page={page}"
-        cache_key = gen_cache_key(url)
-        cached_data = get_from_cache(cache_key)
-        if cached_data:
-            for release in cached_data:
-                tag = release['tag_name'].replace('v', '')
-                if tag == search_rev:
-                    return tag
-            if len(cached_data) < 10:  # Assuming a page size of 10
-                break
-        else:
-            resp = requests.get(url)
-            if resp.status_code != 200:
-                break
-            releases = resp.json()
-            save_to_cache(cache_key, releases)
-            for release in releases:
-                tag = release['tag_name'].replace('v', '')
-                if tag == search_rev:
-                    return tag
-            if len(releases) < 10:  # Assuming a page size of 10
-                break
-        page += 1
-    return "not_found"
+def fetch_and_cache_pg(page_num):
+    qry, vars = build_gql_qry(page_num)
+    cache_k = gen_cache_key(qry, vars)
+    _, new_page_num = fetch_and_proc_data(graphql_url, qry, vars, cache_k)
+    return new_page_num
 
 def save_to_mem_cache(cache_k, data):
     with mem_cache_lock:
@@ -154,8 +100,9 @@ def get_from_cache(cache_k):
             return cache_cont['data']
     return None
 
-def gen_cache_key(url):
-    return hashlib.md5(url.encode('utf-8')).hexdigest()
+def gen_cache_key(qry, vars):
+    qry_str = json.dumps({"query": qry, "variables": vars}, sort_keys=True)
+    return hashlib.md5(qry_str.encode('utf-8')).hexdigest()
 
 def clean_up_cache():
     if not os.path.exists(cache_dir):
@@ -175,7 +122,7 @@ def disp_msg(msg, use_markup=False):
         label.set_markup(msg)
     else:
         label.set_text(msg)
-    label.set_line_wrap(True)  # Wrap long messages
+    label.set_line_wrap(True) # Wrap long messages
     label.show()
     dialog.vbox.pack_start(label, True, True, 0)
 
@@ -188,54 +135,164 @@ def disp_msg(msg, use_markup=False):
     dialog.run()
     dialog.destroy()
 
+def silent_ping(host, count=1):
+    try:
+        subprocess.run(["ping", "-c", str(count), host], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        subprocess.run(["ping", "-n", str(count), host], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 def start_loader():
-    dlg = Gtk.MessageDialog(
-        transient_for=None,
-        flags=0,
-        message_type=Gtk.MessageType.INFO,
-        buttons=Gtk.ButtonsType.NONE,
-        text="Searching for revisions..."
-    )
-    dlg.set_title("Searching")
-    dlg.set_default_size(1280, 80)
-    ctxt = GLib.MainContext.default()
-    while GLib.MainContext.iteration(ctxt, False):
-        pass
-    return dlg
+   dlg = Gtk.MessageDialog(
+       transient_for=None,
+       flags=0,
+       message_type=Gtk.MessageType.INFO,
+       buttons=Gtk.ButtonsType.NONE,
+       text="Searching for revisions..."
+   )
+   dlg.set_title("Searching")
+   dlg.set_default_size(1280, 80)
+   ctxt = GLib.MainContext.default()
+   while GLib.MainContext.iteration(ctxt, False):
+       pass
+   return dlg
+
+def fetch_releases(url):
+    resp = requests.get(url)
+    if resp.status_code != 200:
+        return []
+    releases = resp.json()
+    return [release['tag_name'].replace('v', '') for release in releases]
+
+def get_dl_url(tag):
+   return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-Linux_x86_64.AppImage"
+
+def search_rev(search_rev):
+    available_tags = fetch_releases(releases_url)
+    for tag in available_tags:
+        if tag == search_rev:
+            return tag
+    return "not_found"
+
+def build_gql_qry(page_num):
+   qry = """
+   query($page: Int) {
+       repository(owner: "suyu", name: "suyu") {
+           releases(first: 100, page: $page, orderBy: {field: CREATED_AT, direction: DESC}) {
+               nodes {
+                   tagName
+               }
+               pageInfo {
+                   hasNextPage
+               }
+           }
+       }
+   }
+   """
+   vars = {"page": page_num}
+   return qry, vars
+
+def fetch_and_proc_data(gql_url, qry, vars, cache_k):
+   resp = requests.post(gql_url, json={'query': qry, 'variables': vars})
+   if resp.status_code == 200:
+       data = resp.json()
+       save_to_cache(cache_k, data)
+       return proc_fetched_data(data)
+   return None, None
+
+def proc_cached_data(cached_data):
+   releases = cached_data['data']['repository']['releases']
+   tags = [node['tagName'].replace('v', '') for node in releases['nodes']]
+   has_next_page = releases['pageInfo']['hasNextPage']
+   if has_next_page:
+       return None, cached_data['variables']['page'] + 1
+   else:
+       return tags[0] if tags else None, None
+
+def proc_fetched_data(fetched_data):
+   if not fetched_data or 'data' not in fetched_data:
+       return None, None
+   releases = fetched_data['data']['repository']['releases']
+   tags = [node['tagName'].replace('v', '') for node in releases['nodes']]
+   has_next_page = releases['pageInfo']['hasNextPage']
+   if has_next_page:
+       return None, fetched_data['variables']['page'] + 1
+   else:
+       return tags[0] if tags else None, None
+
+def create_prog_dlg(title="Downloading", text="Starting download..."):
+   dlg = Gtk.Dialog(title)
+   dlg.set_default_size(1280, 80)
+   prog_bar = Gtk.ProgressBar(show_text=True)
+   dlg.vbox.pack_start(prog_bar, True, True, 0)
+   dlg.show_all()
+   return dlg, prog_bar
+
+def dl_with_prog(url, out_pth):
+   resp = requests.get(url, stream=True)
+   if resp.status_code != 200:
+       silent_ping("git.suyu.dev")
+       if resp.status_code == 404:
+           disp_msg("Failed to download the AppImage. The revision might not be found.")
+       else:
+           disp_msg("Failed to download the AppImage. Check your internet connection or try again later.")
+       main()
+       return
+   total_size = int(resp.headers.get('content-length', 0))
+   chunk_size = 1024
+   dl_size = 0
+   dlg, prog_bar = create_prog_dlg()
+   with open(out_pth, 'wb') as f:
+       try:
+           for data in resp.iter_content(chunk_size=chunk_size):
+               f.write(data)
+               dl_size += len(data)
+               progress = dl_size / total_size
+               GLib.idle_add(prog_bar.set_fraction, progress)
+               GLib.idle_add(prog_bar.set_text, f"{int(progress * 100)}%")
+               while Gtk.events_pending():
+                   Gtk.main_iteration()
+               if not dlg.get_visible():
+                   raise Exception("Download cancelled by user.")
+       except Exception as e:
+           dlg.destroy()
+           disp_msg(str(e))
+           return
+   dlg.destroy()
+   os.chmod(out_pth, 0o755)
 
 def gk_event_hdlr(widget, event, tv, lststore, dlg):
-    if tv is not None and lststore is not None:
-        on_k_press_event(event, tv, lststore, dlg)
+   if tv is not None and lststore is not None:
+       on_k_press_event(event, tv, lststore, dlg)
 
 def on_k_press_event(event, tv, lststore, dlg):
-    keyname = Gdk.keyval_name(event.keyval)
-    if keyname == 'BackSpace':
-        handle_cancel(dlg)
-    elif keyname == 'Return':
-        handle_ok(tv, dlg)
-    elif keyname == 'Escape':
-        sys.exit(0)
+   keyname = Gdk.keyval_name(event.keyval)
+   if keyname == 'BackSpace':
+       handle_cancel(dlg)
+   elif keyname == 'Return':
+       handle_ok(tv, dlg)
+   elif keyname == 'Escape':
+       sys.exit(0)
 
 def handle_ok(tv, dlg):
-    model, tree_it = tv.get_selection().get_selected()
-    if tree_it is not None:
-        sel_row_val = model[tree_it][0]
-        print("OK Selected:", sel_row_val)
-        dlg.response(Gtk.ResponseType.OK)
+   model, tree_it = tv.get_selection().get_selected()
+   if tree_it is not None:
+       sel_row_val = model[tree_it][0]
+       print("OK Selected:", sel_row_val)
+       dlg.response(Gtk.ResponseType.OK)
 
 def handle_cancel(dlg):
-    print("Cancel action triggered")
-    dlg.response(Gtk.ResponseType.CANCEL)
+   print("Cancel action triggered")
+   dlg.response(Gtk.ResponseType.CANCEL)
 
 def search_dlg_k_event_hdlr(widget, event, dlg, entry):
-    keyname = Gdk.keyval_name(event.keyval)
-    if keyname == 'Return':
-        dlg.response(Gtk.ResponseType.OK)
-    elif keyname == 'Escape':
-        dlg.response(Gtk.ResponseType.CANCEL)
-    elif keyname == 'BackSpace':
-        if not entry.is_focus():
-            dlg.response(Gtk.ResponseType.CANCEL)
+   keyname = Gdk.keyval_name(event.keyval)
+   if keyname == 'Return':
+       dlg.response(Gtk.ResponseType.OK)
+   elif keyname == 'Escape':
+       dlg.response(Gtk.ResponseType.CANCEL)
+   elif keyname == 'BackSpace':
+       if not entry.is_focus():
+           dlg.response(Gtk.ResponseType.CANCEL)
 
 def ping_suyu():
     try:
@@ -249,14 +306,12 @@ def read_revision_number(log_path):
         with open(log_path, 'r') as f:
             return f.read().strip()
     except FileNotFoundError:
-        return "unknown"  # Return a placeholder if the log file doesn't exist
+        return "unknown"
 
 def prompt_revert_to_backup():
-    # Read the currently installed and backed up revision numbers
     installed_rev = read_revision_number(log_f)
     backed_up_rev = read_revision_number(bkup_log_f)
 
-    # Construct the message text with the revision information
     message_text = f"Installed revision: {installed_rev}\n" \
                    f"Backup revision: {backed_up_rev}\n\n" \
                    "Would you like to revert to the backup installation of Suyu?"
@@ -274,16 +329,15 @@ def prompt_revert_to_backup():
 
 def revert_to_backup():
     if os.path.exists(appimg_pth) and os.path.exists(bkup_pth):
-        shutil.move(appimg_pth, temp_pth)  # Move current AppImage to a temporary location
-        shutil.move(bkup_pth, appimg_pth)  # Move backup AppImage to the current location
-        shutil.move(temp_pth, bkup_pth)  # Move the temporary AppImage to the backup location
+        shutil.move(appimg_pth, temp_pth)
+        shutil.move(bkup_pth, appimg_pth)
+        shutil.move(temp_pth, bkup_pth)
 
         if os.path.exists(log_f) and os.path.exists(bkup_log_f):
-            shutil.move(log_f, temp_log_f)  # Move current log to a temporary location
-            shutil.move(bkup_log_f, log_f)  # Move backup log to the current log's location
-            shutil.move(temp_log_f, bkup_log_f)  # Move the temporary log to the backup log's location
+            shutil.move(log_f, temp_log_f)
+            shutil.move(bkup_log_f, log_f)
+            shutil.move(temp_log_f, bkup_log_f)
 
-        # Show a success dialog with specified size
         dialog = Gtk.MessageDialog(
             transient_for=None,
             flags=0,
@@ -291,11 +345,10 @@ def revert_to_backup():
             buttons=Gtk.ButtonsType.OK,
             text="Successfully reverted to the backup installation of Suyu."
         )
-        dialog.set_default_size(1280, 80)  # Set the dialog size
+        dialog.set_default_size(1280, 80)
         dialog.run()
         dialog.destroy()
     else:
-        # Show an error dialog if the backup installation is not found, with specified size
         dialog = Gtk.MessageDialog(
             transient_for=None,
             flags=0,
@@ -303,66 +356,21 @@ def revert_to_backup():
             buttons=Gtk.ButtonsType.OK,
             text="Backup installation not found."
         )
-        dialog.set_default_size(1280, 80)  # Set the dialog size
+        dialog.set_default_size(1280, 80)
         dialog.run()
         dialog.destroy()
 
-def create_prog_dlg(title="Downloading", text="Starting download..."):
-    dlg = Gtk.Dialog(title)
-    dlg.set_default_size(1280, 80)
-    prog_bar = Gtk.ProgressBar(show_text=True)
-    dlg.vbox.pack_start(prog_bar, True, True, 0)
-    dlg.show_all()
-    return dlg, prog_bar
-
-def dl_with_prog(url, out_pth):
-    resp = requests.get(url, stream=True)
-    if resp.status_code != 200:
-        silent_ping("git.suyu.dev")
-        if resp.status_code == 404:
-            disp_msg("Failed to download the AppImage. The revision might not be found.")
-        else:
-            disp_msg("Failed to download the AppImage. Check your internet connection or try again later.")
-        main()
-        return
-    total_size = int(resp.headers.get('content-length', 0))
-    chunk_size = 1024
-    dl_size = 0
-    dlg, prog_bar = create_prog_dlg()
-    with open(out_pth, 'wb') as f:
-        try:
-            for data in resp.iter_content(chunk_size=chunk_size):
-                f.write(data)
-                dl_size += len(data)
-                progress = dl_size / total_size
-                GLib.idle_add(prog_bar.set_fraction, progress)
-                GLib.idle_add(prog_bar.set_text, f"{int(progress * 100)}%")
-                while Gtk.events_pending():
-                    Gtk.main_iteration()
-                if not dlg.get_visible():
-                    raise Exception("Download cancelled by user.")
-        except Exception as e:
-            dlg.destroy()
-            disp_msg(str(e))
-            return
-    dlg.destroy()
-    os.chmod(out_pth, 0o755)
-
-# Main loop
 def main():
     if not ping_suyu():
         user_choice = prompt_revert_to_backup()
         if user_choice:
-            revert_to_backup()  # This will now show a success dialog upon completion
-            return  # Exit after reverting to backup
+            revert_to_backup()
+            return
         else:
-            # If the user chooses not to revert, exit the application
             print("Exiting application.")
             return
 
     clean_up_cache()
-    pre_cache_thread = threading.Thread(target=pre_cache_releases)
-    pre_cache_thread.start()
 
     search_done = False
     rev = None
@@ -405,7 +413,7 @@ def main():
             search_done = True
 
         loader_dlg = start_loader()
-        available_tags = fetch_releases(f"{rest_api_url}/repos/suyu/suyu/releases", loader_dlg)
+        available_tags = fetch_releases(releases_url)
         loader_dlg.destroy()
         if not available_tags:
             disp_msg("Failed to find available releases. Check your internet connection.")

@@ -27,6 +27,12 @@ def get_os_arch():
             return 'macOS', 'Arm64'
         else:
             raise Exception(f"Unsupported CPU architecture: {arch}")
+    elif os_name == 'Windows':
+        arch = platform.machine()
+        if arch == 'AMD64':
+            return 'Windows', 'x86_64'
+        else:
+            raise Exception(f"Unsupported CPU architecture: {arch}")
     else:
         raise Exception(f"Unsupported operating system: {os_name}")
 
@@ -38,15 +44,19 @@ if os_name == 'Linux':
 elif os_name == 'macOS':
     app_ext = '.app'
     app_fldr = '/Applications'
+elif os_name == 'Windows':
+    app_ext = ''
+    app_fldr = os.path.join(os.environ['APPDATA'], 'Suyu')
+    os.makedirs(app_fldr, exist_ok=True)
 else:
     raise Exception(f"Unsupported operating system: {os_name}")
 
-log_f = os.path.join(app_fldr, f'suyu-revision{app_ext}.log')
-bkup_log_f = os.path.join(app_fldr, f'suyu-backup-revision{app_ext}.log')
+log_f = os.path.join(app_fldr, f'suyu-revision.log')
+bkup_log_f = os.path.join(app_fldr, f'suyu-backup-revision.log')
 appimg_pth = os.path.join(app_fldr, f'Suyu{app_ext}')
 bkup_pth = os.path.join(app_fldr, f'Suyu-backup{app_ext}')
-temp_log_f = f'/tmp/suyu-temp-revision{app_ext}.log'
-temp_pth = f'/tmp/Suyu-temp{app_ext}'
+temp_log_f = os.path.join(app_fldr, f'suyu-temp-revision.log')
+temp_pth = os.path.join(app_fldr, f'Suyu-temp{app_ext}')
 
 releases_url = "https://git.suyu.dev/api/v1/repos/suyu/suyu/releases?limit=100"
 
@@ -98,10 +108,16 @@ def disp_msg(msg, use_markup=False):
     dialog.destroy()
 
 def silent_ping(host, count=1):
-    try:
-        subprocess.run(["ping", "-c", str(count), host], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except FileNotFoundError:
-        subprocess.run(["ping", "-n", str(count), host], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if os_name == 'Windows':
+        try:
+            subprocess.run(["ping", "-n", str(count), host], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except FileNotFoundError:
+            pass
+    else:
+        try:
+            subprocess.run(["ping", "-c", str(count), host], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except FileNotFoundError:
+            pass
 
 def start_loader():
    dlg = Gtk.MessageDialog(
@@ -124,6 +140,8 @@ def get_dl_url(tag):
         return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-{os_name}_{arch}.AppImage"
     elif os_name == 'macOS':
         return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-{os_name}_{arch}.dmg"
+    elif os_name == 'Windows':
+        return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-{os_name}_{arch}.7z"
 
 def gk_event_hdlr(widget, event, tv, lststore, dlg):
    if tv is not None and lststore is not None:
@@ -196,9 +214,9 @@ def prompt_revert_to_backup():
 
 def revert_to_backup():
    if os.path.exists(appimg_pth) and os.path.exists(bkup_pth):
-       shutil.move(appimg_pth, temp_pth)  # Move current AppImage to a temporary location
-       shutil.move(bkup_pth, appimg_pth)  # Move backup AppImage to the current location
-       shutil.move(temp_pth, bkup_pth)  # Move the temporary AppImage to the backup location
+       shutil.move(appimg_pth, temp_pth)  # Move current installation to a temporary location
+       shutil.move(bkup_pth, appimg_pth)  # Move backup installation to the current location
+       shutil.move(temp_pth, bkup_pth)  # Move the temporary installation to the backup location
 
        if os.path.exists(log_f) and os.path.exists(bkup_log_f):
            shutil.move(log_f, temp_log_f)  # Move current log to a temporary location
@@ -243,9 +261,9 @@ def dl_with_prog(url, out_pth):
         if resp.status_code != 200:
             silent_ping("git.suyu.dev")
             if resp.status_code == 404:
-                disp_msg("Failed to download the AppImage. The revision might not be found.")
+                disp_msg("Failed to download the file. The revision might not be found.")
             else:
-                disp_msg("Failed to download the AppImage. Check your internet connection or try again later.")
+                disp_msg("Failed to download the file. Check your internet connection or try again later.")
             main()
             return
         total_size = int(resp.headers.get('content-length', 0))
@@ -269,7 +287,13 @@ def dl_with_prog(url, out_pth):
                 disp_msg(str(e))
                 return
         dlg.destroy()
-        os.chmod(out_pth, 0o755)
+        if os_name != 'Windows':
+            os.chmod(out_pth, 0o755)
+        else:
+            # Extract the 7z archive on Windows
+            extract_dir = os.path.splitext(out_pth)[0]
+            subprocess.run(['7z', 'x', out_pth, f'-o{extract_dir}'], check=True)
+            os.remove(out_pth)  # Remove the 7z archive after extraction
     except Exception as e:
         disp_msg(f"Error: {str(e)}")
         main()
@@ -388,8 +412,8 @@ def main():
                dlg.destroy()
                continue
 
-   if os.path.isfile(appimg_pth):
-       shutil.copy(appimg_pth, temp_pth)
+   if os.path.isdir(appimg_pth):
+       shutil.copytree(appimg_pth, temp_pth)
        if os.path.isfile(log_f):
            shutil.copy(log_f, temp_log_f)
    skip_dl = False
@@ -397,8 +421,9 @@ def main():
        with open(bkup_log_f, 'r') as f:
            bkup_rev = f.read().strip()
        if rev == bkup_rev:
-           if os.path.isfile(bkup_pth):
-               shutil.move(bkup_pth, appimg_pth)
+           if os.path.isdir(bkup_pth):
+               shutil.rmtree(appimg_pth)
+               shutil.copytree(bkup_pth, appimg_pth)
            shutil.move(bkup_log_f, log_f)
            skip_dl = True
    else:
@@ -408,13 +433,18 @@ def main():
        disp_msg(f"Revision {rev} has been installed from backup.")
    else:
        if not skip_dl:
-           appimg_url = get_dl_url(rev)
-           dl_with_prog(appimg_url, appimg_pth)
+           dl_url = get_dl_url(rev)
+           if os_name == 'Windows':
+               archive_path = os.path.join(app_fldr, f'Suyu-{rev}.7z')
+               dl_with_prog(dl_url, archive_path)
+           else:
+               dl_with_prog(dl_url, appimg_pth)
            with open(log_f, 'w') as f:
                f.write(str(rev))
 
-   if os.path.isfile(temp_pth):
-       shutil.move(temp_pth, bkup_pth)
+   if os.path.isdir(temp_pth):
+       shutil.rmtree(bkup_pth, ignore_errors=True)
+       shutil.copytree(temp_pth, bkup_pth)
        if os.path.isfile(temp_log_f):
            shutil.move(temp_log_f, bkup_log_f)
 

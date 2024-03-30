@@ -1,12 +1,13 @@
-<img src="https://raw.githubusercontent.com/styromaniac/SUMI/main/Sumi.png" width="256">
+![SUMI Logo](https://raw.githubusercontent.com/styromaniac/SUMI/main/Sumi.png)
 
 # Suyu Update Manager and Installer (SUMI)
 
-A robust, code-readable Suyu installer/updater for Steam on SteamOS and other Linux distros using [Suyu's releases](https://git.suyu.dev/suyu/suyu/releases). The purpose of this script is to save the user's time by being more easily accessible, convenient, logical, and informative. It is usable through Gaming Mode In SteamOS 3, Bazzite, ChimeraOS, Garuda Linux, HoloISO, Nobara Linux Steam Deck Edition, and more. Any CPU architecture supported by Suyu is automatically detected.
+SUMI is a robust, code-readable Suyu installer/updater for Steam on SteamOS and other Linux distributions. It's designed to save users time by being more accessible, convenient, logical, and informative. SUMI is usable through Gaming Mode In SteamOS 3, Bazzite, ChimeraOS, Garuda Linux, HoloISO, Nobara Linux Steam Deck Edition, and more. Any CPU architecture supported by Suyu is automatically detected.
 
-SUMI will not redownload the same revision of Suyu-ea.AppImage that's already installed. The prior installed revision will be backed up and will be sourced from its backup file instead of redownloaded if it's reinstalled, saving bandwidth.
+SUMI will not redownload the same revision of Suyu-ea.AppImage that's already installed. The previously installed revision will be backed up and sourced from its backup file instead of being redownloaded if reinstalled, saving bandwidth.
 
 ## Install System Dependencies
+
 First, if SUMI doesn't work already, install the necessary system dependencies for your specific Linux distribution:
 
 ### Debian/Ubuntu (apt)
@@ -52,6 +53,7 @@ nix-env -iA nixos.python3 nixos.gtk3 nixos.python3Packages.gobject-introspection
 ```
 
 ## Install pip
+
 Next, install `pip`, the Python package manager, on your distribution:
 
 ### Debian/Ubuntu (apt)
@@ -99,18 +101,13 @@ sudo emerge dev-python/pip
 nix-env -iA nixos.python3Packages.pip
 ```
 
-Note:
-- For CentOS 7, the EPEL (Extra Packages for Enterprise Linux) repository is required to install `pip`.
-- CentOS 8 and newer versions use `dnf` as the default package manager.
-- Always ensure your system's package index is up-to-date (`update`, `refresh`, `--sync`) before installing new packages.
-
 ## Install Python3 Modules
+
 Finally, use `pip` to install the required Python modules:
 
 ```
 pip install requests PyGObject
 ```
----
 
 ## Extracting and Running the Installer Script
 
@@ -142,9 +139,11 @@ If you have downloaded `SUMI-main.zip`, you will need to extract it and then mak
     ```
 
 This process involves changing the script's permissions to allow it to be run as a program on your Linux system. The `chmod +x` command is used for this purpose.
----
+
 ## Compiling SUMI.py for Your Distribution
+
 ### 1. Install PyInstaller
+
 First, you need to install PyInstaller. It's recommended to do this in a virtual environment to avoid conflicts with system packages.
 
 ```bash
@@ -157,9 +156,11 @@ pip install pyinstaller
 ```
 
 ### 2. Prepare Your Script
+
 Make sure the script `SUMI.py` is ready and tested. All dependencies should be correctly imported in the script.
 
 ### 3. Build the Binary
+
 Navigate to the directory where `SUMI.py` is located and run PyInstaller:
 
 ```bash
@@ -176,6 +177,7 @@ chmod +x SUMI
 ```
 
 ### 5. Test the Binary
+
 It's important to test the binary to make sure it runs correctly:
 
 ```bash
@@ -183,12 +185,14 @@ It's important to test the binary to make sure it runs correctly:
 ```
 
 ### Notes:
-- SUMI-installer.sh already exists to install SUMI.py and is recommended for simple installation and consistency in behavior, compatibility, performance and stability.
+
+- SUMI-installer.sh already exists to install SUMI.py and is recommended for simple installation and consistency in behavior, compatibility, performance, and stability.
 - The binary built with PyInstaller is specific to the OS and architecture you build it on. If you build it on Ubuntu, it's meant for Ubuntu systems, and similarly for other distributions.
 - If your distribution of SUMI depends on non-Python files (like images, data files, etc.), you need to tell PyInstaller to include these files. Check PyInstaller's documentation for more on this.
 - Building a binary does not always guarantee the same performance or behavior as running the script directly with Python. Be sure to thoroughly test the binary on the target system.
 
 ### Optional: Creating a Desktop Entry
+
 If you want to integrate SUMI with the Linux desktop environments, you can create a `.desktop` file:
 
 ```ini

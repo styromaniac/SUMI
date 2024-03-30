@@ -225,7 +225,3 @@ To create an application shortcut, you might use Automator to create a small app
 ### Windows
 
 Right-click on your desktop or in any folder where you want the shortcut, select `New > Shortcut`, and follow the prompts to create a shortcut to the SUMI executable. You can specify the path to the SUMI `.exe` file you generated with PyInstaller.
-
----
-
-This README.md aims to provide comprehensive guidance on installing, running, and compiling SUMI across Linux, MacOS, and Windows platforms, ensuring a smooth setup process for users across different operating systems.

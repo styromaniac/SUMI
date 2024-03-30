@@ -119,12 +119,12 @@ chmod +x SUMI-installer.sh
 
 ### MacOS
 
-After downloading `SUMI-main.zip`, extract it, navigate to the `SUMI-main` directory in your terminal, and execute the installer script with Python3:
+After downloading `SUMI-main.zip`, extract it, navigate to the `SUMI-main` directory in your terminal, and execute the installer script:
 
 ```bash
 unzip SUMI-main.zip -d SUMI-main
 cd SUMI-main
-python3 SUMI-installer.py
+./SUMI-installer.sh
 ```
 
 ### Windows
@@ -133,7 +133,7 @@ Download and extract `SUMI-main.zip`, then run the installer script through Comm
 
 ```cmd
 cd path\to\SUMI-main
-python SUMI-installer.py
+SUMI-installer.ps1
 ```
 
 Ensure you navigate to the directory where `SUMI-main` is extracted before running the installer script.

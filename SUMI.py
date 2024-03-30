@@ -2,21 +2,52 @@
 
 import subprocess
 import requests
-import time
 import shutil
+import time
+import sys
 import os
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib, Gdk
 
-# Abbreviations and common string extractions
-app_fldr = os.path.join(os.environ['HOME'], 'Applications')
-log_f = os.path.join(app_fldr, 'suyu-revision.log')
-bkup_log_f = os.path.join(app_fldr, 'suyu-backup-revision.log')
-appimg_pth = os.path.join(app_fldr, 'Suyu.AppImage')
-bkup_pth = os.path.join(app_fldr, 'Suyu-backup.AppImage')
-temp_log_f = '/dev/shm/suyu-temp-revision.log'
-temp_pth = '/dev/shm/Suyu-temp.AppImage'
+def get_os_arch():
+    import platform
+    os_name = platform.system()
+    if os_name == 'Linux':
+        arch = platform.machine()
+        if arch == 'x86_64':
+            return 'Linux', 'x86_64'
+        elif arch == 'aarch64' or arch == 'arm64':
+            return 'Linux', 'Arm64'
+        else:
+            raise Exception(f"Unsupported CPU architecture: {arch}")
+    elif os_name == 'Darwin':
+        arch = platform.machine()
+        if arch == 'arm64':
+            return 'macOS', 'Arm64'
+        else:
+            raise Exception(f"Unsupported CPU architecture: {arch}")
+    else:
+        raise Exception(f"Unsupported operating system: {os_name}")
+
+os_name, arch = get_os_arch()
+
+if os_name == 'Linux':
+    app_ext = '.AppImage'
+    app_fldr = os.path.join(os.environ['HOME'], 'Applications')
+elif os_name == 'macOS':
+    app_ext = '.app'
+    app_fldr = '/Applications'
+else:
+    raise Exception(f"Unsupported operating system: {os_name}")
+
+log_f = os.path.join(app_fldr, f'suyu-revision{app_ext}.log')
+bkup_log_f = os.path.join(app_fldr, f'suyu-backup-revision{app_ext}.log')
+appimg_pth = os.path.join(app_fldr, f'Suyu{app_ext}')
+bkup_pth = os.path.join(app_fldr, f'Suyu-backup{app_ext}')
+temp_log_f = f'/tmp/suyu-temp-revision{app_ext}.log'
+temp_pth = f'/tmp/Suyu-temp{app_ext}'
+
 releases_url = "https://git.suyu.dev/api/v1/repos/suyu/suyu/releases?limit=100"
 
 def ensure_dir_exists(dir_pth):
@@ -87,19 +118,12 @@ def start_loader():
        pass
    return dlg
 
-def get_cpu_arch():
-    import platform
-    arch = platform.machine()
-    if arch == 'x86_64':
-        return 'x86_64'
-    elif arch == 'aarch64' or arch == 'arm64':
-        return 'Arm64'
-    else:
-        raise Exception(f"Unsupported CPU architecture: {arch}")
-
 def get_dl_url(tag):
-    arch = get_cpu_arch()
-    return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-Linux_{arch}.AppImage"
+    os_name, arch = get_os_arch()
+    if os_name == 'Linux':
+        return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-{os_name}_{arch}.AppImage"
+    elif os_name == 'macOS':
+        return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-{os_name}_{arch}.dmg"
 
 def gk_event_hdlr(widget, event, tv, lststore, dlg):
    if tv is not None and lststore is not None:

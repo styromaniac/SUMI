@@ -114,6 +114,6 @@ elif [ "$action" == "u" ]; then
   remove_file "$desktop_dir/SUMI.desktop"
   echo "SUMI has been uninstalled."
 else
-  echo "Invalid action selected. Please run the script again and type 'install' or 'uninstall'."
+  echo "Invalid action selected. Please run the script again and type 'i' or 'u'."
   exit 1
 fi

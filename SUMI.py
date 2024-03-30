@@ -17,10 +17,6 @@ appimg_pth = os.path.join(app_fldr, 'Suyu.AppImage')
 bkup_pth = os.path.join(app_fldr, 'Suyu-backup.AppImage')
 temp_log_f = '/dev/shm/suyu-temp-revision.log'
 temp_pth = '/dev/shm/Suyu-temp.AppImage'
-cfg_dir = os.path.join(os.environ['HOME'], '.config')
-cache_dir = os.path.join(os.environ['HOME'], '.cache', 'SUMI')
-cfg_f = os.path.join(cfg_dir, 'SUMI.conf')
-cache_exp = 50 * 24 * 60 * 60 # 50 days in seconds
 releases_url = "https://git.suyu.dev/api/v1/repos/suyu/suyu/releases?limit=100"
 
 def ensure_dir_exists(dir_pth):

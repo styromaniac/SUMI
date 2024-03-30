@@ -1,209 +1,231 @@
-![SUMI Logo](https://raw.githubusercontent.com/styromaniac/SUMI/main/Sumi.png)
-
 # Suyu Update Manager and Installer (SUMI)
 
-SUMI is a robust, code-readable Suyu installer/updater for Steam on SteamOS, other Linux distributions, Windows and macOS. It's designed to save users time by being more accessible, convenient, logical, and informative. SUMI is usable through Gaming Mode In SteamOS 3, Bazzite, ChimeraOS, Garuda Linux, HoloISO, Nobara Linux Steam Deck Edition, and more. Any CPU architecture supported by Suyu is automatically detected.
+SUMI is a robust, code-readable Suyu installer/updater for Steam on SteamOS and various Linux distributions, macOS and Windows. Designed to enhance user convenience by being accessible, logical, and informative, SUMI supports automatic detection of compatible CPU architectures and optimizes bandwidth by avoiding unnecessary redownloads of Suyu-ea.AppImage.
 
-SUMI will not redownload the same revision of Suyu-ea.AppImage that's already installed. The previously installed revision will be backed up and sourced from its backup file instead of being redownloaded if reinstalled, saving bandwidth.
+![SUMI Logo](https://raw.githubusercontent.com/styromaniac/SUMI/main/Sumi.png)
+
+## Features
+
+- Prevents unnecessary redownloads of Suyu, saving bandwidth.
+- Backs up previously installed revisions for reuse, conserving resources.
+- Detects compatible CPU architectures automatically.
+- Compatible with a wide range of Linux distributions, including SteamOS 3, Bazzite, ChimeraOS, Garuda Linux, HoloISO, Nobara Linux Steam Deck Edition, and more.
+
+## System Requirements
+
+SUMI supports various Linux distributions and provides guidance for MacOS and Windows, extending its utility across different operating systems.
 
 ## Install System Dependencies
 
-First, if SUMI doesn't work already, install the necessary system dependencies for your specific Linux distribution:
+### Linux
 
-### Debian/Ubuntu (apt)
+#### Debian/Ubuntu (apt)
 ```bash
 sudo apt-get update
 sudo apt-get install python3-gi python3-gi-cairo gir1.2-gtk-3.0
 ```
 
-### Fedora (dnf)
+#### Fedora (dnf)
 ```bash
 sudo dnf install python3-gobject python3-cairo-gobject gtk3
 ```
 
-### Arch Linux (pacman)
+#### Arch Linux (pacman)
 ```bash
 sudo pacman -Syu
 sudo pacman -S python-gobject python-cairo gtk3
 ```
 
-### openSUSE (zypper)
+#### openSUSE (zypper)
 ```bash
 sudo zypper refresh
 sudo zypper install python3-gobject python3-gobject-cairo gtk3
 ```
 
-### CentOS (yum)
+#### CentOS (yum)
 For CentOS 7:
 ```bash
 sudo yum install python3-gobject python3-cairo-gobject gtk3
 ```
-For CentOS 8, you might need to enable EPEL and PowerTools repositories, and the package names could be slightly different. 
+For CentOS 8 and newer versions:
+```bash
+sudo dnf install python3-gobject python3-cairo-gobject gtk3
+```
 
-### Gentoo (emerge)
+#### Gentoo (emerge)
 ```bash
 sudo emerge --sync
 sudo emerge dev-python/pygobject:3 x11-libs/gtk+:3
 ```
 
-### NixOS (nix)
+#### NixOS (nix)
 ```bash
 sudo nix-channel --update
 nix-env -iA nixos.python3 nixos.gtk3 nixos.python3Packages.gobject-introspection nixos.python3Packages.pygobject3 nixos.python3Packages.requests
 ```
 
+### MacOS
+
+MacOS users will need to install Python3 and relevant dependencies using Homebrew:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install python3 gtk+3
+```
+
+### Windows
+
+Ensure Python3 is installed from the official Python website or through the Microsoft Store. During installation, select the option to add Python to PATH.
+
 ## Install pip
 
-Next, install `pip`, the Python package manager, on your distribution:
+Pip is essential for installing additional Python packages required by SUMI.
 
-### Debian/Ubuntu (apt)
-```bash
-sudo apt-get update
-sudo apt-get install python3-pip
-```
+### Linux
 
-### Fedora (dnf)
-```bash
-sudo dnf install python3-pip
-```
+Use the package manager specific to your distribution to install pip.
 
-### Arch Linux (pacman)
-```bash
-sudo pacman -Syu
-sudo pacman -S python-pip
-```
+### MacOS
 
-### openSUSE (zypper)
-```bash
-sudo zypper refresh
-sudo zypper install python3-pip
-```
+Pip is included with the Python installation via Homebrew.
 
-### CentOS (yum)
-For CentOS 7:
-```bash
-sudo yum install epel-release
-sudo yum install python-pip
-```
-For CentOS 8:
-```bash
-sudo dnf install python3-pip
-```
+### Windows
 
-### Gentoo (emerge)
-```bash
-sudo emerge --sync
-sudo emerge dev-python/pip
-```
-
-### NixOS (nix)
-```bash
-nix-env -iA nixos.python3Packages.pip
-```
+Pip is included with Python installation. Verify its installation by running `pip --version` in Command Prompt or PowerShell.
 
 ## Install Python3 Modules
 
-Finally, use `pip` to install the required Python modules:
+Across all platforms, use pip to install the required Python modules:
 
-```
+```bash
 pip install requests PyGObject
 ```
 
+Note: Installing PyGObject on MacOS and Windows may require additional steps due to GTK dependencies.
+
 ## Extracting and Running the Installer Script
 
-If you have downloaded `SUMI-main.zip`, you will need to extract it and then make the installer script executable to run it on your system. Follow these steps:
+### Linux
 
-1. **Navigate to the Download Location**: Open a terminal and navigate to the directory where `SUMI-main.zip` is located. For example, if it's in the `Downloads` folder, use:
-    ```bash
-    cd ~/Downloads
-    ```
+Navigate to the directory where `SUMI-main.zip` is downloaded, unzip it, change the directory to the extracted folder, make the installer script executable, and run it:
 
-2. **Unzip the Archive**: Extract the contents of the ZIP file with the following command:
-    ```bash
-    unzip SUMI-main.zip
-    ```
+```bash
+cd ~/Downloads
+unzip SUMI-main.zip
+cd SUMI-main
+chmod +x SUMI-installer.sh
+./SUMI-installer.sh
+```
 
-3. **Navigate to the Extracted Folder**: Change directory to the extracted folder. It's typically named after the ZIP file:
-    ```bash
-    cd SUMI-main
-    ```
+### MacOS
 
-4. **Make the Installer Script Executable**: Run the following command to make `SUMI-installer.sh` executable:
-    ```bash
-    chmod +x SUMI-installer.sh
-    ```
+After downloading `SUMI-main.zip`, extract it, navigate to the `SUMI-main` directory in your terminal, and execute the installer script with Python3:
 
-5. **Run the Installer**: Now, you can execute the script with:
-    ```bash
-    ./SUMI-installer.sh
-    ```
+```bash
+unzip SUMI-main.zip -d SUMI-main
+cd SUMI-main
+python3 SUMI-installer.py
+```
 
-This process involves changing the script's permissions to allow it to be run as a program on your Linux system. The `chmod +x` command is used for this purpose.
+### Windows
+
+Download and extract `SUMI-main.zip`, then run the installer script through Command Prompt or PowerShell:
+
+```cmd
+cd path\to\SUMI-main
+python SUMI-installer.py
+```
+
+Ensure you navigate to the directory where `SUMI-main` is extracted before running the installer script.
 
 ## Compiling SUMI.py for Your Distribution
 
-### 1. Install PyInstaller
+To compile `SUMI.py` into a standalone application or script, use PyInstaller or a similar tool. This process involves using PyInstaller to generate a single executable file, which can simplify the distribution and execution of SUMI on various systems.
 
-First, you need to install PyInstaller. It's recommended to do this in a virtual environment to avoid conflicts with system packages.
+### Linux
+
+1. Install PyInstaller via pip:
 
 ```bash
-# Create a virtual environment (optional but recommended)
-python3 -m venv sumi_env
-source sumi_env/bin/activate
-
-# Install PyInstaller
 pip install pyinstaller
 ```
 
-### 2. Prepare Your Script
-
-Make sure the script `SUMI.py` is ready and tested. All dependencies should be correctly imported in the script.
-
-### 3. Build the Binary
-
-Navigate to the directory where `SUMI.py` is located and run PyInstaller:
+2. Navigate to the directory containing `SUMI.py` and run PyInstaller:
 
 ```bash
-cd /path/to/your/script
 pyinstaller --onefile SUMI.py
 ```
 
-The `--onefile` option tells PyInstaller to pack everything into a single executable file. After the process completes, you'll find the binary in the `dist` directory.
+3. The executable will be located in the `dist` directory within your project folder.
 
-### 4. Make the Binary Executable
+### MacOS
 
-```
-chmod +x SUMI
-```
+MacOS users should follow the same steps as Linux for compiling `SUMI.py`. However, you might need to address permissions or security prompts due to MacOS's Gatekeeper feature:
 
-### 5. Test the Binary
-
-It's important to test the binary to make sure it runs correctly:
+1. Install PyInstaller using pip:
 
 ```bash
-./dist/SUMI
+pip3 install pyinstaller
 ```
 
-### Notes:
+2. Compile `SUMI.py` into a standalone application:
 
-- SUMI-installer.sh already exists to install SUMI.py and is recommended for simple installation and consistency in behavior, compatibility, performance, and stability.
-- The binary built with PyInstaller is specific to the OS and architecture you build it on. If you build it on Ubuntu, it's meant for Ubuntu systems, and similarly for other distributions.
-- If your distribution of SUMI depends on non-Python files (like images, data files, etc.), you need to tell PyInstaller to include these files. Check PyInstaller's documentation for more on this.
-- Building a binary does not always guarantee the same performance or behavior as running the script directly with Python. Be sure to thoroughly test the binary on the target system.
+```bash
+pyinstaller --onefile SUMI.py
+```
 
-### Optional: Creating a Desktop Entry
+3. If you encounter a security prompt when running the executable, navigate to `System Preferences > Security & Privacy` and allow the app to run, or right-click the app and select `Open` for the first launch.
 
-If you want to integrate SUMI with the Linux desktop environments, you can create a `.desktop` file:
+### Windows
+
+On Windows, the process to compile `SUMI.py` is similar but ensure your command prompt or PowerShell has access to Python and PyInstaller:
+
+1. Install PyInstaller through pip:
+
+```cmd
+pip install pyinstaller
+```
+
+2. Navigate to the directory containing `SUMI.py` and execute PyInstaller:
+
+```cmd
+pyinstaller --onefile SUMI.py
+```
+
+3. Find the compiled `.exe` in the `dist` directory. You can distribute this executable to other Windows users, allowing them to run SUMI without installing Python.
+
+### Note
+
+- The `--onefile` flag with PyInstaller creates a single bundled executable file for easy distribution.
+- Users may need to install additional dependencies or runtime libraries depending on the specific requirements of SUMI and the target operating system.
+- Testing the executable on different systems or virtual machines is recommended to ensure compatibility and functionality across various configurations.
+
+## Optional: Creating a Desktop Entry (Linux) / Application Shortcut (MacOS and Windows)
+
+For easier access to SUMI, you might want to create a desktop shortcut or entry.
+
+### Linux
+
+Create a `.desktop` file in `~/.local/share/applications/` with the following contents, adjusting paths as necessary:
 
 ```ini
 [Desktop Entry]
-Name=SUMI
-Exec=/path/to/dist/SUMI
-Icon=/path/to/Sumi.png
 Type=Application
+Name=SUMI
+Exec=/path/to/SUMI
+Icon=/path/to/sumi_icon.png
+Comment=Update Manager for Suyu
 Categories=Utility;
 ```
 
-Replace `/path/to/dist/SUMI` with the actual path to the executable and `/path/to/Sumi.png` with the path to an icon of your choice. This file should be placed in `~/.local/share/applications/` or `/usr/share/applications/` for system-wide availability.
+### MacOS
 
-By following these steps, you should be able to create a binary for SUMI that can be distributed and run on Linux systems.
+To create an application shortcut, you might use Automator to create a small application that runs the SUMI script, or manually create a shortcut.
+
+### Windows
+
+Right-click on your desktop or in any folder where you want the shortcut, select `New > Shortcut`, and follow the prompts to create a shortcut to the SUMI executable. You can specify the path to the SUMI `.exe` file you generated with PyInstaller.
+
+---
+
+This README.md aims to provide comprehensive guidance on installing, running, and compiling SUMI across Linux, MacOS, and Windows platforms, ensuring a smooth setup process for users across different operating systems.

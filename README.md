@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/styromaniac/SUMI/main/SUMI-capsule.png" width="256">
+<img src="https://raw.githubusercontent.com/styromaniac/SUMI/main/Sumi.png" width="256">
 
 # Suyu Updater Manager and Installer (SUMI)
 

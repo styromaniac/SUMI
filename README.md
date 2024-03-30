@@ -7,7 +7,7 @@ A robust, code-readable Suyu installer/updater for Steam on SteamOS and other Li
 SUMI will not redownload the same revision of Suyu-ea.AppImage that's already installed. The prior installed revision will be backed up and will be sourced from its backup file instead of redownloaded if it's reinstalled, saving bandwidth.
 
 ## Install System Dependencies
-First, install the necessary system dependencies for your specific Linux distribution if SUMI doesn't work already:
+First, if SUMI doesn't work already, install the necessary system dependencies for your specific Linux distribution:
 
 ### Debian/Ubuntu (apt)
 ```bash

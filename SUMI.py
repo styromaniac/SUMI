@@ -87,8 +87,19 @@ def start_loader():
        pass
    return dlg
 
+def get_cpu_arch():
+    import platform
+    arch = platform.machine()
+    if arch == 'x86_64':
+        return 'x86_64'
+    elif arch == 'aarch64' or arch == 'arm64':
+        return 'Arm64'
+    else:
+        raise Exception(f"Unsupported CPU architecture: {arch}")
+
 def get_dl_url(tag):
-   return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-Linux_x86_64.AppImage"
+    arch = get_cpu_arch()
+    return f"https://git.suyu.dev/suyu/suyu/releases/download/v{tag}/Suyu-Linux_{arch}.AppImage"
 
 def gk_event_hdlr(widget, event, tv, lststore, dlg):
    if tv is not None and lststore is not None:
@@ -203,37 +214,42 @@ def create_prog_dlg(title="Downloading", text="Starting download..."):
    return dlg, prog_bar
 
 def dl_with_prog(url, out_pth):
-   resp = requests.get(url, stream=True)
-   if resp.status_code != 200:
-       silent_ping("git.suyu.dev")
-       if resp.status_code == 404:
-           disp_msg("Failed to download the AppImage. The revision might not be found.")
-       else:
-           disp_msg("Failed to download the AppImage. Check your internet connection or try again later.")
-       main()
-       return
-   total_size = int(resp.headers.get('content-length', 0))
-   chunk_size = 1024
-   dl_size = 0
-   dlg, prog_bar = create_prog_dlg()
-   with open(out_pth, 'wb') as f:
-       try:
-           for data in resp.iter_content(chunk_size=chunk_size):
-               f.write(data)
-               dl_size += len(data)
-               progress = dl_size / total_size
-               GLib.idle_add(prog_bar.set_fraction, progress)
-               GLib.idle_add(prog_bar.set_text, f"{int(progress * 100)}%")
-               while Gtk.events_pending():
-                   Gtk.main_iteration()
-               if not dlg.get_visible():
-                   raise Exception("Download cancelled by user.")
-       except Exception as e:
-           dlg.destroy()
-           disp_msg(str(e))
-           return
-   dlg.destroy()
-   os.chmod(out_pth, 0o755)
+    try:
+        resp = requests.get(url, stream=True)
+        if resp.status_code != 200:
+            silent_ping("git.suyu.dev")
+            if resp.status_code == 404:
+                disp_msg("Failed to download the AppImage. The revision might not be found.")
+            else:
+                disp_msg("Failed to download the AppImage. Check your internet connection or try again later.")
+            main()
+            return
+        total_size = int(resp.headers.get('content-length', 0))
+        chunk_size = 1024
+        dl_size = 0
+        dlg, prog_bar = create_prog_dlg()
+        with open(out_pth, 'wb') as f:
+            try:
+                for data in resp.iter_content(chunk_size=chunk_size):
+                    f.write(data)
+                    dl_size += len(data)
+                    progress = dl_size / total_size
+                    GLib.idle_add(prog_bar.set_fraction, progress)
+                    GLib.idle_add(prog_bar.set_text, f"{int(progress * 100)}%")
+                    while Gtk.events_pending():
+                        Gtk.main_iteration()
+                    if not dlg.get_visible():
+                        raise Exception("Download cancelled by user.")
+            except Exception as e:
+                dlg.destroy()
+                disp_msg(str(e))
+                return
+        dlg.destroy()
+        os.chmod(out_pth, 0o755)
+    except Exception as e:
+        disp_msg(f"Error: {str(e)}")
+        main()
+        return
 
 # Main loop
 def main():

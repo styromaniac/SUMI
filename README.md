@@ -133,7 +133,7 @@ Download and extract `SUMI-main.zip`, then run the installer script through Comm
 
 ```cmd
 cd path\to\SUMI-main
-SUMI-installer.ps1
+.\SUMI-installer.ps1
 ```
 
 Ensure you navigate to the directory where `SUMI-main` is extracted before running the installer script.

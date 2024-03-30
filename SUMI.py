@@ -24,8 +24,6 @@ def ensure_dir_exists(dir_pth):
         os.makedirs(dir_pth)
 
 ensure_dir_exists(app_fldr)
-ensure_dir_exists(cache_dir)
-ensure_dir_exists(cfg_dir)
 
 def on_tv_row_act(tv, pth, col):
     model = tv.get_model()

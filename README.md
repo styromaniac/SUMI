@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/styromaniac/SUMI/main/Sumi.png" width="256">
 
-# Suyu Updater Manager and Installer (SUMI)
+# Suyu Update Manager and Installer (SUMI)
 
 A robust, code-readable Suyu installer/updater for Steam on SteamOS and other Linux distros using [Suyu's releases](https://git.suyu.dev/suyu/suyu/releases). The purpose of this script is to save the user's time by being more easily accessible, convenient, logical, and informative. It is usable through Gaming Mode In SteamOS 3, Bazzite, ChimeraOS, Garuda Linux, HoloISO, Nobara Linux Steam Deck Edition, and more.
 

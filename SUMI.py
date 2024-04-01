@@ -20,7 +20,7 @@ repo = "suyu"
 os_name = platform.system()
 arch = platform.machine()
 
-app_ext = '.AppImage' if os_name == 'Linux' else ''
+app_ext = '.AppImage' if os_name == 'Linux' else '.dmg' if os_name == 'Darwin' else '.7z'
 app_fldr = os.path.join(os.path.expanduser('~'), 'Applications')
 
 os.makedirs(app_fldr, exist_ok=True)
@@ -28,7 +28,7 @@ os.makedirs(app_fldr, exist_ok=True)
 log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-revision.log')
 bkup_log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-backup-revision.log')
 app_pth = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}{app_ext}')
-bkup_pth = os.path.join(app_fldr, f'{app_name}{os_name}_{arch}-backup{app_ext}')
+bkup_pth = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-backup{app_ext}')
 temp_log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-temp-revision.log')
 temp_pth = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-temp{app_ext}')
 
@@ -221,12 +221,19 @@ def dl_with_prog(url, out_pth):
                 disp_msg(str(e))
                 return
         dlg.destroy()
-        if os_name != 'Windows':
-            os.chmod(out_pth, 0o755)
-        else:
+        if os_name == 'Darwin':
+            mount_point = '/Volumes/Suyu'
+            subprocess.run(['hdiutil', 'attach', '-mountpoint', mount_point, out_pth], check=True)
+            app_path = os.path.join(mount_point, f'{app_name}.app')
+            shutil.copytree(app_path, app_pth)
+            subprocess.run(['hdiutil', 'detach', mount_point], check=True)
+            os.remove(out_pth)
+        elif os_name == 'Windows':
             extract_dir = os.path.splitext(out_pth)[0]
             subprocess.run(['7z', 'x', out_pth, f'-o{extract_dir}'], check=True)
             os.remove(out_pth)
+        else:
+            os.chmod(out_pth, 0o755)
     except Exception as e:
         disp_msg(f"Error: {str(e)}")
         return
@@ -318,8 +325,8 @@ def main():
         dlg.destroy()
         break
 
-    if os.path.isdir(app_pth):
-        shutil.copytree(app_pth, temp_pth)
+    if os.path.exists(app_pth):
+        shutil.move(app_pth, temp_pth)
         if os.path.isfile(log_f):
             shutil.copy(log_f, temp_log_f)
 
@@ -327,7 +334,7 @@ def main():
     if os.path.isfile(bkup_log_f):
         bkup_rev = read_revision_number(bkup_log_f)
         if rev == bkup_rev:
-            if os.path.isdir(bkup_pth):
+            if os.path.exists(bkup_pth):
                 rotate_files(app_pth, bkup_pth, temp_pth, log_f, bkup_log_f, temp_log_f)
             shutil.move(bkup_log_f, log_f)
             skip_dl = True
@@ -340,8 +347,15 @@ def main():
         with open(log_f, 'w') as f:
             f.write(str(rev))
 
-    if os.path.isdir(temp_pth):
-        rotate_files(temp_pth, bkup_pth, app_pth, temp_log_f, bkup_log_f, log_f)
+    if os.path.exists(temp_pth):
+        if os.path.exists(bkup_pth):
+            os.remove(bkup_pth)
+        shutil.move(temp_pth, bkup_pth)
+
+    if os.path.exists(temp_log_f):
+        if os.path.exists(bkup_log_f):
+            os.remove(bkup_log_f)
+        shutil.move(temp_log_f, bkup_log_f)
 
 if __name__ == "__main__":
-   main()
+    main()

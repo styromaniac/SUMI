@@ -212,40 +212,29 @@ def prompt_revert_to_backup():
    dialog.destroy()
    return response == Gtk.ResponseType.YES
 
+def rotate_files(current_path, backup_path, temp_path, current_log, backup_log, temp_log):
+    if os.path.exists(current_path) and os.path.exists(backup_path):
+        shutil.move(current_path, temp_path)
+        shutil.move(backup_path, current_path)
+        shutil.move(temp_path, backup_path)
+
+        if os.path.exists(current_log) and os.path.exists(backup_log):
+            shutil.move(current_log, temp_log)
+            shutil.move(backup_log, current_log)
+            shutil.move(temp_log, backup_log)
+
 def revert_to_backup():
-   if os.path.exists(appimg_pth) and os.path.exists(bkup_pth):
-       shutil.move(appimg_pth, temp_pth)  # Move current installation to a temporary location
-       shutil.move(bkup_pth, appimg_pth)  # Move backup installation to the current location
-       shutil.move(temp_pth, bkup_pth)  # Move the temporary installation to the backup location
-
-       if os.path.exists(log_f) and os.path.exists(bkup_log_f):
-           shutil.move(log_f, temp_log_f)  # Move current log to a temporary location
-           shutil.move(bkup_log_f, log_f)  # Move backup log to the current log's location
-           shutil.move(temp_log_f, bkup_log_f)  # Move the temporary log to the backup log's location
-
-       # Show a success dialog with specified size
-       dialog = Gtk.MessageDialog(
-           transient_for=None,
-           flags=0,
-           message_type=Gtk.MessageType.INFO,
-           buttons=Gtk.ButtonsType.OK,
-           text="Successfully reverted to the backup installation of Suyu."
-       )
-       dialog.set_default_size(1280, 80)  # Set the dialog size
-       dialog.run()
-       dialog.destroy()
-   else:
-       # Show an error dialog if the backup installation is not found, with specified size
-       dialog = Gtk.MessageDialog(
-           transient_for=None,
-           flags=0,
-           message_type=Gtk.MessageType.ERROR,
-           buttons=Gtk.ButtonsType.OK,
-           text="Backup installation not found."
-       )
-       dialog.set_default_size(1280, 80)  # Set the dialog size
-       dialog.run()
-       dialog.destroy()
+    if os.path.exists(appimg_pth) and os.path.exists(bkup_pth):
+        rotate_files(appimg_pth, bkup_pth, temp_pth, log_f, bkup_log_f, temp_log_f)
+        show_dialog(
+            message_type=Gtk.MessageType.INFO,
+            text="Successfully reverted to the backup installation of Suyu."
+        )
+    else:
+        show_dialog(
+            message_type=Gtk.MessageType.ERROR,
+            text="Backup installation not found."
+        )
 
 def create_prog_dlg(title="Downloading", text="Starting download..."):
    dlg = Gtk.Dialog(title)
@@ -298,6 +287,18 @@ def dl_with_prog(url, out_pth):
         disp_msg(f"Error: {str(e)}")
         main()
         return
+
+def show_dialog(message_type, text):
+    dialog = Gtk.MessageDialog(
+        transient_for=None,
+        flags=0,
+        message_type=message_type,
+        buttons=Gtk.ButtonsType.OK,
+        text=text
+    )
+    dialog.set_default_size(1280, 80)  # Set the dialog size
+    dialog.run()
+    dialog.destroy()
 
 # Main loop
 def main():
@@ -422,8 +423,7 @@ def main():
            bkup_rev = f.read().strip()
        if rev == bkup_rev:
            if os.path.isdir(bkup_pth):
-               shutil.rmtree(appimg_pth)
-               shutil.copytree(bkup_pth, appimg_pth)
+               rotate_files(appimg_pth, bkup_pth, temp_pth, log_f, bkup_log_f, temp_log_f)
            shutil.move(bkup_log_f, log_f)
            skip_dl = True
    else:
@@ -443,10 +443,7 @@ def main():
                f.write(str(rev))
 
    if os.path.isdir(temp_pth):
-       shutil.rmtree(bkup_pth, ignore_errors=True)
-       shutil.copytree(temp_pth, bkup_pth)
-       if os.path.isfile(temp_log_f):
-           shutil.move(temp_log_f, bkup_log_f)
+       rotate_files(temp_pth, bkup_pth, appimg_pth, temp_log_f, bkup_log_f, log_f)
 
 if __name__ == "__main__":
-   main()
+  main()

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import subprocess
+import platform
 import requests
 import shutil
 import sys
 import os
 import gi
-import platform
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib, Gdk

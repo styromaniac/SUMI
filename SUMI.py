@@ -25,12 +25,12 @@ app_fldr = os.path.join(os.path.expanduser('~'), 'Applications')
 
 os.makedirs(app_fldr, exist_ok=True)
 
-log_f = os.path.join(app_fldr, f'{app_name.lower()}-revision.log')
-bkup_log_f = os.path.join(app_fldr, f'{app_name.lower()}-backup-revision.log')
-app_pth = os.path.join(app_fldr, f'{app_name}{app_ext}')
-bkup_pth = os.path.join(app_fldr, f'{app_name}-backup{app_ext}')
-temp_log_f = os.path.join(app_fldr, f'{app_name.lower()}-temp-revision.log')
-temp_pth = os.path.join(app_fldr, f'{app_name}-temp{app_ext}')
+log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-revision.log')
+bkup_log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-backup-revision.log')
+app_pth = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}{app_ext}')
+bkup_pth = os.path.join(app_fldr, f'{app_name}{os_name}_{arch}-backup{app_ext}')
+temp_log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-temp-revision.log')
+temp_pth = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-temp{app_ext}')
 
 releases_url = f"https://{domain}/api/v1/repos/{repo_owner}/{repo}/releases?limit=100"
 

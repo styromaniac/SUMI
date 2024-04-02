@@ -13,7 +13,6 @@ from gi.repository import Gtk, GLib, Gdk
 
 # Configurable variables
 domain = "git.suyu.dev"
-app_name = "Suyu"
 repo_owner = "suyu"
 repo = "suyu"
 
@@ -25,12 +24,26 @@ app_fldr = os.path.join(os.path.expanduser('~'), 'Applications')
 
 os.makedirs(app_fldr, exist_ok=True)
 
-log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-revision.log')
-bkup_log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-backup-revision.log')
-app_pth = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}{app_ext}')
-bkup_pth = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-backup{app_ext}')
-temp_log_f = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-temp-revision.log')
-temp_pth = os.path.join(app_fldr, f'{app_name}-{os_name}_{arch}-temp{app_ext}')
+def format_repo(repo, is_first_word):
+    words = repo.split()
+    formatted_words = []
+
+    for i, word in enumerate(words):
+        if i == 0 and is_first_word:
+            formatted_words.append(word.capitalize())
+        elif word[0].isupper():
+            formatted_words.append(word.lower())
+        else:
+            formatted_words.append(word)
+
+    return ' '.join(formatted_words)
+
+log_f = os.path.join(app_fldr, f'{format_repo(repo, True)}-{os_name}_{arch}-revision.log')
+bkup_log_f = os.path.join(app_fldr, f'{format_repo(repo, True)}-{os_name}_{arch}-backup-revision.log')
+app_pth = os.path.join(app_fldr, f'{format_repo(repo, True)}-{os_name}_{arch}{app_ext}')
+bkup_pth = os.path.join(app_fldr, f'{format_repo(repo, True)}-{os_name}_{arch}-backup{app_ext}')
+temp_log_f = os.path.join(app_fldr, f'{format_repo(repo, False)}-{os_name}_{arch}-temp-revision.log')
+temp_pth = os.path.join(app_fldr, f'{format_repo(repo, False)}-{os_name}_{arch}-temp{app_ext}')
 
 releases_url = f"https://{domain}/api/v1/repos/{repo_owner}/{repo}/releases?limit=100"
 
@@ -89,7 +102,7 @@ def start_loader():
     return dlg
 
 def get_dl_url(tag):
-    return f"https://{domain}/{repo_owner}/{repo}/releases/download/v{tag}/{app_name}-{os_name}_{arch}{app_ext}"
+    return f"https://{domain}/{repo_owner}/{repo}/releases/download/v{tag}/{format_repo(repo, True)}-{os_name}_{arch}{app_ext}"
 
 def gk_event_hdlr(widget, event, tv, lststore, dlg):
     if tv is not None and lststore is not None:
@@ -145,7 +158,7 @@ def prompt_revert_to_backup():
 
     message_text = f"Installed revision: {installed_rev}\n" \
                    f"Backup revision: {backed_up_rev}\n\n" \
-                   f"Would you like to revert to the backup installation of {app_name}?"
+                   f"Would you like to revert to the backup installation of {format_repo(repo, False)}?"
 
     dialog = Gtk.MessageDialog(
         transient_for=None,
@@ -172,7 +185,7 @@ def rotate_files(current_path, backup_path, temp_path, current_log, backup_log, 
 def revert_to_backup():
     if os.path.exists(app_pth) and os.path.exists(bkup_pth):
         rotate_files(app_pth, bkup_pth, temp_pth, log_f, bkup_log_f, temp_log_f)
-        disp_msg(f"Successfully reverted to the backup installation of {app_name}.")
+        disp_msg(f"Successfully reverted to the backup installation of {format_repo(repo, False)}.")
     else:
         disp_msg("Backup installation not found.")
 
@@ -224,7 +237,7 @@ def dl_with_prog(url, out_pth):
         if os_name == 'Darwin':
             mount_point = '/Volumes/Suyu'
             subprocess.run(['hdiutil', 'attach', '-mountpoint', mount_point, out_pth], check=True)
-            app_path = os.path.join(mount_point, f'{app_name}.app')
+            app_path = os.path.join(mount_point, f'{format_repo(repo, True)}.app')
             shutil.copytree(app_path, app_pth)
             subprocess.run(['hdiutil', 'detach', mount_point], check=True)
             os.remove(out_pth)
@@ -304,7 +317,7 @@ def main():
         scrolled_window.set_hexpand(True)
         scrolled_window.set_vexpand(True)
         scrolled_window.add(tv)
-        dlg = Gtk.Dialog(title=f"Select {app_name} Revision", transient_for=None, flags=0)
+        dlg = Gtk.Dialog(title=f"Select {format_repo(repo, True)} Revision", transient_for=None, flags=0)
         dlg.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.OK, Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         dlg.vbox.pack_start(scrolled_window, True, True, 0)
         dlg.set_default_size(80, 800)

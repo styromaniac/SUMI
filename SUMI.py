@@ -347,6 +347,9 @@ def main():
         with open(log_f, 'w') as f:
             f.write(str(rev))
 
+        # Show a success dialog
+        disp_msg(f"Revision {rev} has been successfully installed.")
+
     if os.path.exists(temp_pth):
         if os.path.exists(bkup_pth):
             os.remove(bkup_pth)

@@ -271,6 +271,7 @@ def main():
                     installed_tag = read_revision_number(log_f)
                     if found_rev == installed_tag:
                         disp_msg(f"Revision {found_rev} is already installed.")
+                        dlg.destroy()
                         continue
                     rev = found_rev
                     break
@@ -317,6 +318,7 @@ def main():
                 rev = rev_selection.replace(" (installed)", "").replace(" (backed up)", "")
                 if rev == installed_tag:
                     disp_msg(f"Revision {rev} is already installed.")
+                    dlg.destroy()
                     continue
         else:
             dlg.destroy()

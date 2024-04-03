@@ -1,12 +1,12 @@
 # Suyu Update Manager and Installer (SUMI)
 
-SUMI is a robust, code-readable Suyu installer/updater for Steam on SteamOS and various Linux distributions, macOS and Windows. Designed to enhance user convenience by being accessible, logical, and informative, SUMI supports automatic detection of compatible operating systems plus CPU architectures and optimizes bandwidth by avoiding unnecessary redownloads of suyu.
+SUMI is a robust, code-readable suyu installer/updater for Steam on SteamOS and various Linux distributions, macOS and Windows. Designed to enhance user convenience by being accessible, logical, and informative, SUMI supports automatic detection of compatible operating systems plus CPU architectures and optimizes bandwidth by avoiding unnecessary redownloads of suyu.
 
 ![SUMI Logo](https://raw.githubusercontent.com/styromaniac/SUMI/main/Sumi.png)
 
 ## Features
 
-- Prevents unnecessary redownloads of Suyu, saving bandwidth.
+- Prevents unnecessary redownloads of suyu, saving bandwidth.
 - Backs up previously installed revisions for reuse, conserving resources.
 - Detects OSes and CPU architectures automatically.
 - Compatible with a wide range of Linux distributions, including SteamOS 3, Bazzite, ChimeraOS, Garuda Linux, HoloISO, Nobara Linux Steam Deck Edition, and more.

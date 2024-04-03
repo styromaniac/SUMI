@@ -28,8 +28,8 @@ log_f = os.path.join(app_fldr, f'{repo.title()}-{os_name}_{arch}-revision.log')
 bkup_log_f = os.path.join(app_fldr, f'{repo.title()}-{os_name}_{arch}-backup-revision.log')
 app_pth = os.path.join(app_fldr, f'{repo.title()}-{os_name}_{arch}{app_ext}')
 bkup_pth = os.path.join(app_fldr, f'{repo.title()}-{os_name}_{arch}-backup{app_ext}')
-temp_log_f = os.path.join(app_fldr, f'{repo}-{os_name}_{arch}-temp-revision.log')
-temp_pth = os.path.join(app_fldr, f'{repo}-{os_name}_{arch}-temp{app_ext}')
+temp_log_f = os.path.join(app_fldr, f'{repo.title()}-{os_name}_{arch}-temp-revision.log')
+temp_pth = os.path.join(app_fldr, f'{repo.title()}-{os_name}_{arch}-temp{app_ext}')
 
 releases_url = f"https://{domain}/api/v1/repos/{repo_owner}/{repo}/releases?limit=100"
 

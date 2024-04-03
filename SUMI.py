@@ -212,7 +212,7 @@ def dl_with_prog(url, out_pth):
                 disp_msg("Failed to download the file. The revision might not be found.")
             else:
                 disp_msg("Failed to download the file. Check your internet connection or try again later.")
-            return
+            exit(1)
         total_size = int(resp.headers.get('content-length', 0))
         chunk_size = 1024
         dl_size = 0
